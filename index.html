@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic Markdown Loader with Titles</title>
+    <style>
+      #fileList {
+        list-style-type: none;
+      }
+      #fileList li {
+        cursor: pointer;
+        color: blue;
+      }
+      #fileList li:hover {
+        text-decoration: underline;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.0.0/js-yaml.min.js"></script>
+  </head>
+  <body>
+    <ul id="fileList">
+      <!-- List will be populated dynamically -->
+    </ul>
+    <div id="content"></div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const files = ["file1.md"]; // Example markdown file names
+
+        const fileList = document.getElementById("fileList");
+        fileList.innerHTML = ""; // Clear the list
+
+        files.forEach((file) => {
+          fetch(`post/${file}`)
+            .then((response) => response.text())
+            .then((data) => {
+              const separator = "---";
+              const parts = data.split(separator);
+              if (parts.length >= 3) {
+                const yamlPart = parts[1].trim();
+                const metadata = jsyaml.load(yamlPart);
+                const li = document.createElement("li");
+                li.textContent = metadata.title || file;
+                li.addEventListener("click", () => loadFile(file));
+                fileList.appendChild(li);
+              } else {
+                console.error(
+                  "Error parsing the file: No valid YAML front matter found"
+                );
+              }
+            })
+            .catch((error) => console.error("Error loading file:", error));
+        });
+      });
+
+      function loadFile(file) {
+        fetch(`post/${file}`)
+          .then((response) => response.text())
+          .then((data) => {
+            const separator = "---";
+            const parts = data.split(separator);
+            if (parts.length >= 3) {
+              const markdownPart = parts.slice(2).join(separator).trim();
+              document.getElementById("content").innerHTML =
+                marked.parse(markdownPart);
+            } else {
+              document.getElementById("content").innerHTML = marked.parse(data);
+            }
+          })
+          .catch((error) => console.error("Error loading file:", error));
+      }
+    </script>
+  </body>
+</html>
